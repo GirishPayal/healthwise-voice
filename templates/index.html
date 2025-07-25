@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>William Voice Chat</title>
+  <style>
+    body { font-family:sans-serif; text-align:center; padding:2rem; }
+    button { font-size:1.2rem; padding:1rem; margin:1rem; }
+    audio { margin-top:1rem; width:80%; }
+  </style>
+</head>
+<body>
+  <h1>🗣️ Talk to William</h1>
+  <button id="record">Start Recording</button>
+  <audio id="player" controls></audio>
+
+  <script>
+    let mediaRecorder, audioChunks=[];
+    let threadId = null;
+    const btn = document.getElementById("record");
+    const player = document.getElementById("player");
+
+    btn.onclick = async () => {
+      if (mediaRecorder && mediaRecorder.state==="recording") {
+        mediaRecorder.stop();
+        btn.textContent = "Processing...";
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = uploadAudio;
+        mediaRecorder.start();
+        btn.textContent = "Stop Recording";
+      }
+    };
+
+    async function uploadAudio() {
+      btn.disabled = true;
+      const blob = new Blob(audioChunks, {type:"audio/webm"});
+      const form = new FormData();
+      form.append("audio", blob, "user.webm");
+      if (threadId) form.append("thread_id", threadId);
+
+      const res = await fetch("/chat", { method:"POST", body: form });
+      const newThread = res.headers.get("X-Thread-ID");
+      if (newThread) threadId = newThread;
+      const mp3 = await res.blob();
+      player.src = URL.createObjectURL(mp3);
+      player.play();
+      btn.textContent = "Start Recording";
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
