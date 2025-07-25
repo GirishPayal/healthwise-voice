@@ -23,11 +23,13 @@ def run_assistant(message, thread_id=None):
 
     # 1️⃣ Create a new thread if none exists
     if not thread_id:
-        r = requests.post(
-            f"https://api.openai.com/v1/assistants/{ASSISTANT_ID}/threads",
-            headers=headers
-        )
-        thread_id = r.json()["id"]
+    r = requests.post(
+        "https://api.openai.com/v1/threads",
+        headers=headers,
+        json={"assistant_id": ASSISTANT_ID}
+    )
+    r.raise_for_status()
+    thread_id = r.json()["id"]
 
     # 2️⃣ Post the user message
     requests.post(
